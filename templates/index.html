@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hashtag Recommender</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Hashtag Recommendation</h1>
+    <p class="subtitle">Type a tweet and get suggested hashtags</p>
+
+    <textarea id="tweetInput" placeholder="Write your tweet here..." rows="5"></textarea>
+
+    <div class="controls">
+      <button id="generateBtn">Generate Hashtags</button>
+    </div>
+
+    <div id="result" class="result">
+      <h3>Suggested Hashtags</h3>
+      <div id="tags" class="tags">No suggestions yet.</div>
+    </div>
+
+    <div id="error" class="error" style="display:none;"></div>
+  </div>
+
+  <script>
+    async function generate() {
+      const input = document.getElementById('tweetInput').value.trim();
+      const errorDiv = document.getElementById('error');
+      const tagsDiv = document.getElementById('tags');
+      errorDiv.style.display = 'none';
+      tagsDiv.innerHTML = 'Loading...';
+
+      try {
+        const resp = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: input })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+          tagsDiv.innerHTML = '';
+          errorDiv.style.display = 'block';
+          errorDiv.innerText = data.error || 'Prediction error';
+          return;
+        }
+
+        const tags = data.hashtags;
+        if (tags.length === 0) {
+          tagsDiv.innerHTML = '<span class="no-tags">No relevant hashtags found.</span>';
+        } else {
+          tagsDiv.innerHTML = tags.map(t => `<span class="tag">${t}</span>`).join(' ');
+        }
+      } catch (err) {
+        tagsDiv.innerHTML = '';
+        errorDiv.style.display = 'block';
+        errorDiv.innerText = 'Server error. Make sure app is running.';
+      }
+    }
+
+    document.getElementById('generateBtn').addEventListener('click', generate);
+
+    // Allow Ctrl+Enter to submit
+    document.getElementById('tweetInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        generate();
+      }
+    });
+  </script>
+</body>
+</html>
